@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Proxy Manager - Ứng dụng quản lý và test proxy
 
 Ứng dụng web chuyên nghiệp để quản lý và test proxy với giao diện thân thiện và tính năng đầy đủ.
@@ -131,3 +132,7 @@ Mọi đóng góp đều được chào đón! Hãy tạo issue hoặc pull requ
 ## 📄 License
 
 MIT License - Xem file LICENSE để biết thêm chi tiết.
+=======
+# proxy-management
+proxy management 
+>>>>>>> 9c33c06ba1155b33a11cca180bae76ff3084c340

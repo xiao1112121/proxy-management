@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Edit, Trash2, Play, Pause, Download, Upload, Filter, Search, Globe, CheckSquare, Square, Eye, EyeOff, RefreshCw, Plus, X } from 'lucide-react'
 import { SimpleProxy as Proxy } from '@/types/proxy'
 import { ProxyImportExport } from '@/utils/importExport'
@@ -52,55 +52,12 @@ export default function ProxyList({
   const [showAddProxyModal, setShowAddProxyModal] = useState(false)
   const [selectedProxies, setSelectedProxies] = useState<number[]>([])
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [filteredProxies, setFilteredProxies] = useState<Proxy[]>(proxies)
   const [editForm, setEditForm] = useState<Partial<Proxy>>({})
   const [showPassword, setShowPassword] = useState<Record<number, boolean>>({})
   const [showAdvancedFiltersModal, setShowAdvancedFiltersModal] = useState(false)
   const [savedFilters, setSavedFilters] = useState<Record<string, any>>({})
   // const [showAddProxyModal, setShowAddProxyModal] = useState(false) // Removed - using tab-based design
 
-  const filteredProxies = proxies.filter(proxy => {
-    const matchesSearch = proxy.host.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         proxy.country?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         proxy.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         proxy.group?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         proxy.notes?.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesType = filterType === 'all' || proxy.type === filterType
-    const matchesStatus = filterStatus === 'all' || proxy.status === filterStatus
-    const matchesAnonymity = filterAnonymity === 'all' || proxy.anonymity === filterAnonymity
-    const matchesCountry = filterCountry === 'all' || proxy.country === filterCountry
-    const matchesGroup = filterGroup === 'all' || proxy.group === filterGroup
-    
-    // Ping filter
-    let matchesPing = true
-    if (filterPing !== 'all' && proxy.ping) {
-      const ping = proxy.ping
-      switch (filterPing) {
-        case 'very-fast': matchesPing = ping < 100; break
-        case 'fast': matchesPing = ping >= 100 && ping < 300; break
-        case 'medium': matchesPing = ping >= 300 && ping < 500; break
-        case 'slow': matchesPing = ping >= 500 && ping < 1000; break
-        case 'very-slow': matchesPing = ping >= 1000; break
-      }
-    }
-    
-    // Speed filter
-    let matchesSpeed = true
-    if (filterSpeed !== 'all' && proxy.speed) {
-      const speed = proxy.speed
-      switch (filterSpeed) {
-        case 'very-fast': matchesSpeed = speed > 10; break
-        case 'fast': matchesSpeed = speed >= 5 && speed <= 10; break
-        case 'medium': matchesSpeed = speed >= 2 && speed < 5; break
-        case 'slow': matchesSpeed = speed >= 1 && speed < 2; break
-        case 'very-slow': matchesSpeed = speed < 1; break
-      }
-    }
-    
-    return matchesSearch && matchesType && matchesStatus && matchesAnonymity && 
-           matchesCountry && matchesGroup && matchesPing && matchesSpeed
-  })
 
   // Get unique values for filter dropdowns
   const uniqueCountries = Array.from(new Set(proxies.map(p => p.country).filter(Boolean))).sort()
