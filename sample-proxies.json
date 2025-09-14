@@ -1,0 +1,41 @@
+[
+  {
+    "host": "proxy1.example.com",
+    "port": 8080,
+    "username": "user1",
+    "password": "pass1",
+    "type": "http",
+    "status": "pending",
+    "group": "Test Group 1",
+    "country": "Việt Nam",
+    "city": "Hà Nội",
+    "anonymity": "elite",
+    "lastTested": "2024-01-15T10:30:00.000Z"
+  },
+  {
+    "host": "proxy2.example.com",
+    "port": 3128,
+    "username": "user2",
+    "password": "pass2",
+    "type": "https",
+    "status": "pending",
+    "group": "Test Group 2",
+    "country": "Singapore",
+    "city": "Singapore",
+    "anonymity": "anonymous",
+    "lastTested": "2024-01-15T10:35:00.000Z"
+  },
+  {
+    "host": "proxy3.example.com",
+    "port": 1080,
+    "username": "user3",
+    "password": "pass3",
+    "type": "socks5",
+    "status": "pending",
+    "group": "Test Group 3",
+    "country": "Thái Lan",
+    "city": "Bangkok",
+    "anonymity": "elite",
+    "lastTested": "2024-01-15T10:40:00.000Z"
+  }
+]
