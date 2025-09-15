@@ -7,8 +7,7 @@ import {
   User, 
   LogOut, 
   Settings, 
-  ChevronDown,
-  Globe
+  ChevronDown
 } from 'lucide-react'
 
 export default function Header() {
@@ -22,48 +21,16 @@ export default function Header() {
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <Globe className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">Proxy Manager</span>
-            </Link>
-          </div>
-
-          {/* Navigation */}
-          <nav className="hidden md:flex space-x-8">
-            <Link 
-              href="/" 
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-            >
-              Trang chủ
-            </Link>
-            <Link 
-              href="/dashboard" 
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-            >
-              Dashboard
-            </Link>
-            <Link 
-              href="/proxies" 
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-            >
-              Quản lý Proxy
-            </Link>
-          </nav>
+      <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-end items-center h-16">
 
           {/* Language Switcher & User Menu - Same row */}
           <div className="flex items-center space-x-4">
             {/* Language Switcher */}
             <div className="flex items-center space-x-2">
-              <Globe className="h-4 w-4 text-gray-500" />
-              <select className="text-sm border border-gray-300 rounded-md px-2 py-1">
-                <option value="vi">Tiếng Việt</option>
-                <option value="en">English</option>
+              <select className="text-sm border border-white/30 rounded-md px-2 py-1 bg-white text-gray-900">
+                <option value="vi" className="text-gray-900">Tiếng Việt</option>
+                <option value="en" className="text-gray-900">English</option>
               </select>
             </div>
 
@@ -74,9 +41,9 @@ export default function Header() {
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
+                  className="flex items-center space-x-2 text-white hover:text-blue-200 px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                     {user?.picture ? (
                       <img
                         src={user.picture}
@@ -120,13 +87,13 @@ export default function Header() {
               <div className="flex items-center space-x-2">
                 <Link
                   href="/login"
-                  className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
+                  className="text-white hover:text-blue-200 px-3 py-2 rounded-md text-sm font-medium bg-white/20"
                 >
                   Đăng nhập
                 </Link>
                 <Link
                   href="/register"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+                  className="bg-white text-gray-900 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-100"
                 >
                   Đăng ký
                 </Link>
@@ -139,24 +106,6 @@ export default function Header() {
       {/* Mobile menu */}
       <div className="md:hidden">
         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-          <Link 
-            href="/" 
-            className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium"
-          >
-            Trang chủ
-          </Link>
-          <Link 
-            href="/dashboard" 
-            className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium"
-          >
-            Dashboard
-          </Link>
-          <Link 
-            href="/proxies" 
-            className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium"
-          >
-            Quản lý Proxy
-          </Link>
         </div>
       </div>
     </header>

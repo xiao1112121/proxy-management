@@ -33,9 +33,15 @@ import RealHealthMonitoringTab from '@/components/RealHealthMonitoringTab'
 import WebTrafficTab from '@/components/WebTrafficTab'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 export default function Home() {
+  const { user, isAuthenticated, login } = useAuth()
   const { t } = useLanguage()
-  const { login } = useAuth()
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [isClient, setIsClient] = useState(false)
+
+  // Set client-side flag to prevent hydration mismatch
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
   
   // Use lazy loading for large datasets
   const {
@@ -288,6 +294,50 @@ export default function Home() {
 
   function setForceUpdate(arg0: (prev: number) => number) {
     throw new Error('Function not implemented.')
+  }
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center">
+          <div className="relative inline-block mb-8">
+            <div className="absolute -inset-4 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 rounded-full opacity-75 blur-lg animate-pulse"></div>
+            <div className="relative bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 p-6 rounded-full">
+              <Shield className="h-16 w-16 text-white drop-shadow-2xl" />
+            </div>
+            <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full border-2 border-white animate-bounce">
+              <Zap className="h-4 w-4 text-white m-1" />
+            </div>
+          </div>
+          
+          <h1 className="text-4xl font-black text-white mb-4 bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 bg-clip-text text-transparent">
+            Proxy Manager
+          </h1>
+          <p className="text-white/80 text-lg mb-8">
+            Vui lòng đăng nhập để sử dụng ứng dụng quản lý proxy
+          </p>
+          
+          <div className="space-y-4">
+            <button
+              onClick={() => window.location.href = '/login'}
+              className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 text-white py-4 px-6 rounded-xl font-bold text-lg shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105"
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <Zap className="h-5 w-5" />
+                <span>Đăng nhập ngay</span>
+              </div>
+            </button>
+            
+            <div className="text-white/60 text-sm">
+              <p>🔒 Dữ liệu proxy được bảo mật riêng cho từng tài khoản</p>
+              <p>⚡ Quản lý hàng trăm nghìn proxy hiệu quả</p>
+              <p>🎯 Công cụ test và phân tích chuyên nghiệp</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

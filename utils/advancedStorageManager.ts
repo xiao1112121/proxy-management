@@ -6,12 +6,12 @@ export class AdvancedStorageManager {
   private static readonly MAX_TOTAL_SIZE = 8 * 1024 * 1024 // 8MB max total size
   
   // Chunk-based storage keys
-  private static getChunkKey(index: number): string {
-    return `proxies_chunk_${index}`
+  private static getChunkKey(userId: string, index: number): string {
+    return `proxies_${userId}_chunk_${index}`
   }
   
-  private static getMetadataKey(): string {
-    return 'proxies_metadata'
+  private static getMetadataKey(userId: string): string {
+    return `proxies_${userId}_metadata`
   }
 
   // Improved compression using better algorithms
@@ -103,18 +103,23 @@ export class AdvancedStorageManager {
   }
 
   // Save proxies with chunking and compression
-  static saveProxies(proxies: any[]): boolean {
+  static saveProxies(proxies: any[], userId: string): boolean {
     // Check if we're in browser environment
     if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
       console.warn('localStorage not available in SSR environment')
       return false
     }
 
+    if (!userId) {
+      console.error('❌ User ID is required to save proxies')
+      return false
+    }
+
     try {
-      console.log(`💾 Saving ${proxies.length} proxies with chunking...`)
+      console.log(`💾 Saving ${proxies.length} proxies for user ${userId} with chunking...`)
       
-      // Clear existing data
-      this.clearProxies()
+      // Clear existing data for this user
+      this.clearProxies(userId)
       
       if (proxies.length === 0) {
         return true
@@ -126,9 +131,9 @@ export class AdvancedStorageManager {
       if (chunks.length > this.MAX_CHUNKS) {
         console.warn(`⚠️ Too many proxies (${proxies.length}). Only saving first ${this.MAX_CHUNKS * this.CHUNK_SIZE} proxies.`)
         const limitedChunks = chunks.slice(0, this.MAX_CHUNKS)
-        this.saveChunks(limitedChunks)
+        this.saveChunks(limitedChunks, userId)
       } else {
-        this.saveChunks(chunks)
+        this.saveChunks(chunks, userId)
       }
 
       // Save metadata
@@ -136,60 +141,66 @@ export class AdvancedStorageManager {
         totalCount: proxies.length,
         chunkCount: Math.min(chunks.length, this.MAX_CHUNKS),
         lastSaved: new Date().toISOString(),
-        version: '2.0.0'
+        version: '2.0.0',
+        userId: userId
       }
       
-      localStorage.setItem(this.getMetadataKey(), JSON.stringify(metadata))
-      console.log(`✅ Successfully saved ${proxies.length} proxies in ${chunks.length} chunks`)
+      localStorage.setItem(this.getMetadataKey(userId), JSON.stringify(metadata))
+      console.log(`✅ Successfully saved ${proxies.length} proxies for user ${userId} in ${chunks.length} chunks`)
       return true
       
     } catch (error) {
       console.error('❌ Failed to save proxies:', error)
       
       // Fallback: save only essential data in smaller chunks
-      return this.saveEssentialProxies(proxies)
+      return this.saveEssentialProxies(proxies, userId)
     }
   }
 
   // Save chunks to localStorage
-  private static saveChunks(chunks: any[][]): void {
+  private static saveChunks(chunks: any[][], userId: string): void {
     chunks.forEach((chunk, index) => {
       const compressedChunk = this.compress(chunk)
-      const chunkKey = this.getChunkKey(index)
+      const chunkKey = this.getChunkKey(userId, index)
       
       try {
         localStorage.setItem(chunkKey, compressedChunk)
       } catch (error) {
-        console.error(`❌ Failed to save chunk ${index}:`, error)
+        console.error(`❌ Failed to save chunk ${index} for user ${userId}:`, error)
         throw error
       }
     })
   }
 
   // Load proxies from chunks
-  static loadProxies(): any[] | null {
+  static loadProxies(userId: string): any[] | null {
     // Check if we're in browser environment
     if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
       console.warn('localStorage not available in SSR environment')
       return null
     }
 
+    if (!userId) {
+      console.warn('❌ User ID is required to load proxies')
+      return null
+    }
+
     try {
       // Load metadata first
-      const metadataStr = localStorage.getItem(this.getMetadataKey())
+      const metadataStr = localStorage.getItem(this.getMetadataKey(userId))
       if (!metadataStr) {
-        console.log('📭 No proxy data found')
+        console.log(`📭 No proxy data found for user ${userId}`)
         return null
       }
 
       const metadata = JSON.parse(metadataStr)
-      console.log(`📖 Loading ${metadata.totalCount} proxies from ${metadata.chunkCount} chunks...`)
+      console.log(`📖 Loading ${metadata.totalCount} proxies for user ${userId} from ${metadata.chunkCount} chunks...`)
 
       const allProxies: any[] = []
       
       // Load each chunk
       for (let i = 0; i < metadata.chunkCount; i++) {
-        const chunkKey = this.getChunkKey(i)
+        const chunkKey = this.getChunkKey(userId, i)
         const chunkData = localStorage.getItem(chunkKey)
         
         if (chunkData) {
@@ -198,19 +209,19 @@ export class AdvancedStorageManager {
         }
       }
 
-      console.log(`✅ Successfully loaded ${allProxies.length} proxies`)
+      console.log(`✅ Successfully loaded ${allProxies.length} proxies for user ${userId}`)
       return allProxies
       
     } catch (error) {
-      console.error('❌ Failed to load proxies:', error)
+      console.error(`❌ Failed to load proxies for user ${userId}:`, error)
       return null
     }
   }
 
   // Fallback: save only essential data
-  private static saveEssentialProxies(proxies: any[]): boolean {
+  private static saveEssentialProxies(proxies: any[], userId: string): boolean {
     try {
-      console.log('🔄 Using essential data fallback...')
+      console.log(`🔄 Using essential data fallback for user ${userId}...`)
       
       const essentialProxies = proxies.map(p => ({
         id: p.id,
@@ -224,46 +235,52 @@ export class AdvancedStorageManager {
       const chunks = this.chunkProxies(essentialProxies)
       const limitedChunks = chunks.slice(0, 10) // Only 10,000 essential proxies
       
-      this.saveChunks(limitedChunks)
+      this.saveChunks(limitedChunks, userId)
       
       const metadata = {
         totalCount: essentialProxies.length,
         chunkCount: limitedChunks.length,
         lastSaved: new Date().toISOString(),
         version: '2.0.0-essential',
-        isEssential: true
+        isEssential: true,
+        userId: userId
       }
       
-      localStorage.setItem(this.getMetadataKey(), JSON.stringify(metadata))
-      console.log(`✅ Saved ${essentialProxies.length} essential proxies`)
+      localStorage.setItem(this.getMetadataKey(userId), JSON.stringify(metadata))
+      console.log(`✅ Saved ${essentialProxies.length} essential proxies for user ${userId}`)
       return true
       
     } catch (error) {
-      console.error('❌ Essential data save failed:', error)
+      console.error(`❌ Essential data save failed for user ${userId}:`, error)
       return false
     }
   }
 
-  // Clear all proxy data
-  static clearProxies(): void {
+  // Clear all proxy data for a specific user
+  static clearProxies(userId: string): void {
     try {
+      if (!userId) {
+        console.warn('❌ User ID is required to clear proxies')
+        return
+      }
+
       // Clear metadata
-      localStorage.removeItem(this.getMetadataKey())
+      localStorage.removeItem(this.getMetadataKey(userId))
       
-      // Clear all chunks
+      // Clear all chunks for this user
       for (let i = 0; i < this.MAX_CHUNKS; i++) {
-        const chunkKey = this.getChunkKey(i)
+        const chunkKey = this.getChunkKey(userId, i)
         localStorage.removeItem(chunkKey)
       }
       
-      console.log('✅ Cleared all proxy data')
+      console.log(`✅ Cleared all proxy data for user ${userId}`)
     } catch (error) {
-      console.error('❌ Failed to clear proxy data:', error)
+      console.error(`❌ Failed to clear proxy data for user ${userId}:`, error)
     }
   }
 
   // Get storage statistics
-  static getStorageStats(): {
+  static getStorageStats(userId: string): {
     totalSize: number
     chunkCount: number
     averageChunkSize: number
@@ -281,8 +298,18 @@ export class AdvancedStorageManager {
       }
     }
 
+    if (!userId) {
+      return {
+        totalSize: 0,
+        chunkCount: 0,
+        averageChunkSize: 0,
+        compressionRatio: 0,
+        isEssential: false
+      }
+    }
+
     try {
-      const metadataStr = localStorage.getItem(this.getMetadataKey())
+      const metadataStr = localStorage.getItem(this.getMetadataKey(userId))
       if (!metadataStr) {
         return {
           totalSize: 0,
@@ -297,7 +324,7 @@ export class AdvancedStorageManager {
       let totalSize = 0
       
       for (let i = 0; i < metadata.chunkCount; i++) {
-        const chunkKey = this.getChunkKey(i)
+        const chunkKey = this.getChunkKey(userId, i)
         const chunkData = localStorage.getItem(chunkKey)
         if (chunkData) {
           totalSize += chunkData.length
@@ -315,7 +342,7 @@ export class AdvancedStorageManager {
         isEssential: metadata.isEssential || false
       }
     } catch (error) {
-      console.error('❌ Failed to get storage stats:', error)
+      console.error(`❌ Failed to get storage stats for user ${userId}:`, error)
       return {
         totalSize: 0,
         chunkCount: 0,
@@ -327,14 +354,14 @@ export class AdvancedStorageManager {
   }
 
   // Check if storage is near limit
-  static isStorageNearLimit(): boolean {
-    const stats = this.getStorageStats()
+  static isStorageNearLimit(userId: string): boolean {
+    const stats = this.getStorageStats(userId)
     return stats.totalSize > 4 * 1024 * 1024 // 4MB warning
   }
 
   // Get recommended action
-  static getRecommendedAction(): string {
-    const stats = this.getStorageStats()
+  static getRecommendedAction(userId: string): string {
+    const stats = this.getStorageStats(userId)
     
     if (stats.isEssential) {
       return 'Dữ liệu đã được nén tối đa. Cân nhắc xóa proxy không cần thiết.'

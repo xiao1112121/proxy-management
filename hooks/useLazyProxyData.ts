@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/contexts/AuthContext'
 import { SimpleProxy as Proxy } from '@/types/proxy'
 import { AdvancedStorageManager } from '@/utils/advancedStorageManager'
 
@@ -12,7 +12,7 @@ interface UseLazyProxyDataOptions {
 }
 
 export function useLazyProxyData(options: UseLazyProxyDataOptions = {}) {
-  const { data: session } = useSession()
+  const { user, isAuthenticated } = useAuth()
   const {
     batchSize = 500, // Giảm batch size để xử lý tốt hơn
     maxItems = 200000, // Tăng max items để hỗ trợ 200,000+ proxy
@@ -29,11 +29,20 @@ export function useLazyProxyData(options: UseLazyProxyDataOptions = {}) {
   // Load initial data with better error handling
   useEffect(() => {
     const loadInitialData = async () => {
+      if (!isAuthenticated || !user?.id) {
+        console.log('🔒 User not authenticated, clearing proxy data')
+        setAllProxies([])
+        setVisibleProxies([])
+        setTotalCount(0)
+        setHasMore(false)
+        return
+      }
+
       setIsLoading(true)
       try {
-        console.log('🔄 Loading proxy data...')
-        const proxies = AdvancedStorageManager.loadProxies() || []
-        console.log(`📊 Loaded ${proxies.length} proxies`)
+        console.log(`🔄 Loading proxy data for user ${user.id}...`)
+        const proxies = AdvancedStorageManager.loadProxies(String(user.id)) || []
+        console.log(`📊 Loaded ${proxies.length} proxies for user ${user.id}`)
         
         setAllProxies(proxies)
         setTotalCount(proxies.length)
@@ -64,7 +73,7 @@ export function useLazyProxyData(options: UseLazyProxyDataOptions = {}) {
     }
 
     loadInitialData()
-  }, [batchSize, enableVirtualization])
+  }, [batchSize, enableVirtualization, isAuthenticated, user?.id])
 
   // Load more data for virtual scrolling with better performance
   const loadMore = useCallback(() => {
@@ -92,6 +101,11 @@ export function useLazyProxyData(options: UseLazyProxyDataOptions = {}) {
 
   // Add new proxy
   const addProxy = useCallback((proxy: Omit<Proxy, 'id'>) => {
+    if (!isAuthenticated || !user?.id) {
+      console.warn('❌ User not authenticated, cannot add proxy')
+      return
+    }
+
     const newProxy: Proxy = {
       ...proxy,
       id: Date.now() + Math.random()
@@ -99,22 +113,27 @@ export function useLazyProxyData(options: UseLazyProxyDataOptions = {}) {
     
     setAllProxies(prev => {
       const updated = [newProxy, ...prev]
-      AdvancedStorageManager.saveProxies(updated)
+      AdvancedStorageManager.saveProxies(updated, String(user.id))
       return updated
     })
     
     if (!enableVirtualization) {
       setVisibleProxies(prev => [newProxy, ...prev])
     }
-  }, [enableVirtualization])
+  }, [enableVirtualization, isAuthenticated, user?.id])
 
   // Update proxy
   const updateProxy = useCallback((id: number, updates: Partial<Proxy>) => {
+    if (!isAuthenticated || !user?.id) {
+      console.warn('❌ User not authenticated, cannot update proxy')
+      return
+    }
+
     setAllProxies(prev => {
       const updated = prev.map(proxy => 
         proxy.id === id ? { ...proxy, ...updates } : proxy
       )
-      AdvancedStorageManager.saveProxies(updated)
+      AdvancedStorageManager.saveProxies(updated, String(user.id))
       return updated
     })
     
@@ -125,42 +144,57 @@ export function useLazyProxyData(options: UseLazyProxyDataOptions = {}) {
         )
       )
     }
-  }, [enableVirtualization])
+  }, [enableVirtualization, isAuthenticated, user?.id])
 
   // Delete proxy
   const deleteProxy = useCallback((id: number) => {
+    if (!isAuthenticated || !user?.id) {
+      console.warn('❌ User not authenticated, cannot delete proxy')
+      return
+    }
+
     setAllProxies(prev => {
       const updated = prev.filter(proxy => proxy.id !== id)
-      AdvancedStorageManager.saveProxies(updated)
+      AdvancedStorageManager.saveProxies(updated, String(user.id))
       return updated
     })
     
     if (!enableVirtualization) {
       setVisibleProxies(prev => prev.filter(proxy => proxy.id !== id))
     }
-  }, [enableVirtualization])
+  }, [enableVirtualization, isAuthenticated, user?.id])
 
   // Delete multiple proxies
   const deleteProxies = useCallback((ids: number[]) => {
+    if (!isAuthenticated || !user?.id) {
+      console.warn('❌ User not authenticated, cannot delete proxies')
+      return
+    }
+
     setAllProxies(prev => {
       const updated = prev.filter(proxy => !ids.includes(proxy.id))
-      AdvancedStorageManager.saveProxies(updated)
+      AdvancedStorageManager.saveProxies(updated, String(user.id))
       return updated
     })
     
     if (!enableVirtualization) {
       setVisibleProxies(prev => prev.filter(proxy => !ids.includes(proxy.id)))
     }
-  }, [enableVirtualization])
+  }, [enableVirtualization, isAuthenticated, user?.id])
 
   // Clear all proxies
   const clearAllProxies = useCallback(() => {
+    if (!isAuthenticated || !user?.id) {
+      console.warn('❌ User not authenticated, cannot clear proxies')
+      return
+    }
+
     setAllProxies([])
     setVisibleProxies([])
     setCurrentBatch(0)
     setHasMore(false)
-    AdvancedStorageManager.clearProxies()
-  }, [])
+    AdvancedStorageManager.clearProxies(String(user.id))
+  }, [isAuthenticated, user?.id])
 
   // Get statistics
   const stats = useMemo(() => {
@@ -224,7 +258,7 @@ export function useLazyProxyData(options: UseLazyProxyDataOptions = {}) {
   // Get performance info
   const performanceInfo = useMemo(() => {
     // Only get storage stats on client side
-    if (typeof window === 'undefined') {
+    if (typeof window === 'undefined' || !user?.id) {
       return {
         isEssential: false,
         chunkCount: 0,
@@ -235,16 +269,16 @@ export function useLazyProxyData(options: UseLazyProxyDataOptions = {}) {
       }
     }
     
-    const storageStats = AdvancedStorageManager.getStorageStats()
+    const storageStats = AdvancedStorageManager.getStorageStats(String(user.id))
     return {
       isEssential: storageStats.isEssential,
       chunkCount: storageStats.chunkCount,
       totalSize: storageStats.totalSize,
       compressionRatio: storageStats.compressionRatio,
-      isNearLimit: AdvancedStorageManager.isStorageNearLimit(),
-      recommendation: AdvancedStorageManager.getRecommendedAction()
+      isNearLimit: AdvancedStorageManager.isStorageNearLimit(String(user.id)),
+      recommendation: AdvancedStorageManager.getRecommendedAction(String(user.id))
     }
-  }, [])
+  }, [user?.id])
 
   return {
     // Data
