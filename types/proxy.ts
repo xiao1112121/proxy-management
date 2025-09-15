@@ -100,7 +100,7 @@ export interface SimpleProxy {
   port: number
   username?: string
   password?: string
-  type: 'http' | 'https' | 'socks4' | 'socks5' | 'residential' | 'datacenter' | 'mobile'
+  type: ProxyType
   status: 'alive' | 'dead' | 'pending' | 'testing'
   ping?: number
   speed?: number
@@ -108,6 +108,9 @@ export interface SimpleProxy {
   location?: string
   country?: string
   city?: string
+  region?: string
+  isp?: string
+  publicIP?: string
   anonymity?: 'transparent' | 'anonymous' | 'elite'
   lastTested?: string
   group?: string
@@ -115,7 +118,6 @@ export interface SimpleProxy {
   failCount?: number
   successCount?: number
   isSelected?: boolean
-  publicIP?: string
   dnsLeak?: boolean
   webrtcLeak?: boolean
   userAgent?: string

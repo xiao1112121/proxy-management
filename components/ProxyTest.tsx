@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Play, Pause, RotateCcw, Settings, Globe, Zap, Clock, Shield } from 'lucide-react'
 import { SimpleProxy as Proxy } from '@/types/proxy'
 
@@ -18,36 +18,23 @@ export default function ProxyTest({ proxies, onUpdate }: ProxyTestProps) {
     onUpdate(proxy.id, { status: 'testing' })
 
     try {
-      // Simulate proxy test
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Real proxy test
+      const response = await fetch('/api/test-proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ proxy })
+      })
       
-      const successRate = {
-        'http': 0.8,
-        'https': 0.85,
-        'socks4': 0.7,
-        'socks5': 0.75,
-        'residential': 0.9,
-        'datacenter': 0.8,
-        'mobile': 0.6
-      }[proxy.type] || 0.5
+      const result = await response.json()
       
-      const success = Math.random() < successRate
-      const ping = success ? Math.floor(Math.random() * 2000) + 100 : undefined
-      const speed = success ? Math.floor(Math.random() * 5000) + 1000 : undefined
-      
-      const result = {
-        success,
-        ping,
-        speed,
-        error: success ? undefined : 'Connection failed'
-      }
-
       setResults(prev => ({ ...prev, [proxy.id]: result }))
       
       onUpdate(proxy.id, {
-        status: success ? 'alive' : 'dead',
-        ping,
-        speed,
+        status: result.success ? 'alive' : 'dead',
+        ping: result.ping,
+        speed: result.speed,
         lastTested: new Date().toISOString()
       })
     } catch (error) {

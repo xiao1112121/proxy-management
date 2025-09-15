@@ -9,7 +9,10 @@ interface ProxyStats {
   total: number
   alive: number
   dead: number
+  testing: number
   pending: number
+  alivePercentage: number
+  deadPercentage: number
   averagePing: number
   averageSpeed: number
   successRate: number

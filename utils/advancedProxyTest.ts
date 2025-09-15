@@ -1,6 +1,7 @@
 import { SimpleProxy as Proxy } from '@/types/proxy'
 import { SocksProxyAgent } from 'socks-proxy-agent'
 import { HttpsProxyAgent } from 'https-proxy-agent'
+import fetch from 'node-fetch'
 
 export interface AdvancedTestResult {
   id: number
@@ -94,15 +95,15 @@ export class AdvancedProxyTester {
       cacheTimeout: 300000, // 5 minutes
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       testUrls: {
-        ipCheck: 'https://httpbin.org/ip',
-        speedTest: 'https://httpbin.org/bytes/1048576',
+        ipCheck: 'https://web.telegram.org/',
+        speedTest: 'https://www.youtube.com/',
         headers: 'https://httpbin.org/headers',
         geolocation: 'https://ipapi.co/json/',
         dnsLeak: 'https://dnsleaktest.com/api/v1/dnsleak',
         webrtcLeak: 'https://webrtc-test.com/api/leak'
       },
-      mockMode: true,
-      realisticSimulation: true,
+      mockMode: false,
+      realisticSimulation: false,
       errorRate: 0.1,
       slowProxyRate: 0.2,
       ...config
@@ -140,17 +141,21 @@ export class AdvancedProxyTester {
       
       // Test with a real HTTP request
       const testUrl = 'http://httpbin.org/ip'
-      const response = await fetch(testUrl, {
-        agent: agent,
-        signal: controller.signal,
-        timeout: this.config.timeout
-      })
+      const fetchOptions: any = {
+        signal: controller.signal
+      }
+      
+      if (agent) {
+        fetchOptions.agent = agent
+      }
+      
+      const response = await fetch(testUrl, fetchOptions)
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      const data = await response.json()
+      const data = await response.json() as any
       const endTime = Date.now()
       const ping = endTime - startTime
 
@@ -538,13 +543,18 @@ export class AdvancedProxyTester {
   private async testSecurity(proxy: Proxy, agent: any, signal: AbortSignal): Promise<any> {
     try {
       // Test for DNS leak
-      const dnsResponse = await fetch('http://httpbin.org/headers', {
-        agent: agent,
+      const dnsFetchOptions: any = {
         signal: signal,
         timeout: 10000
-      })
+      }
       
-      const dnsData = await dnsResponse.json()
+      if (agent) {
+        dnsFetchOptions.agent = agent
+      }
+      
+      const dnsResponse = await fetch('http://httpbin.org/headers', dnsFetchOptions)
+      
+      const dnsData = await dnsResponse.json() as any
       const headers = dnsData.headers || {}
       
       return {
@@ -563,13 +573,18 @@ export class AdvancedProxyTester {
 
   private async getGeolocation(ip: string, agent: any, signal: AbortSignal): Promise<any> {
     try {
-      const response = await fetch(`http://ip-api.com/json/${ip}`, {
-        agent: agent,
+      const geoFetchOptions: any = {
         signal: signal,
         timeout: 10000
-      })
+      }
       
-      const data = await response.json()
+      if (agent) {
+        geoFetchOptions.agent = agent
+      }
+      
+      const response = await fetch(`http://ip-api.com/json/${ip}`, geoFetchOptions)
+      
+      const data = await response.json() as any
       
       return {
         country: data.country,

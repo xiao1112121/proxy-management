@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { RealProxyTester } from '@/utils/realProxyTest'
+
+import { ProxyType } from '@/types/proxy'
 
 interface ProxyTestRequest {
   host: string
   port: number
   username?: string
   password?: string
-  type: 'http' | 'https' | 'socks4' | 'socks5'
+  type: ProxyType
+  testUrl?: string
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { host, port, username, password, type }: ProxyTestRequest = await request.json()
+    const { host, port, username, password, type, testUrl }: ProxyTestRequest = await request.json()
 
     if (!host || !port) {
       return NextResponse.json({ 
@@ -19,61 +23,35 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Test proxy connection
-    const startTime = Date.now()
-    let success = false
-    let error = ''
-    let ping = 0
-    let speed = 0
-
-    try {
-      // Create proxy URL
-      let proxyUrl = ''
-      if (username && password) {
-        proxyUrl = `${type}://${username}:${password}@${host}:${port}`
-      } else {
-        proxyUrl = `${type}://${host}:${port}`
-      }
-
-      // Test with a simple HTTP request
-      const testUrl = 'http://httpbin.org/ip'
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
-
-      const response = await fetch(testUrl, {
-        method: 'GET',
-        signal: controller.signal,
-        // Note: In a real implementation, you'd need to configure the proxy
-        // This is a simplified version for demonstration
-      })
-
-      clearTimeout(timeoutId)
-
-      if (response.ok) {
-        const data = await response.json()
-        success = true
-        ping = Date.now() - startTime
-        speed = Math.floor(Math.random() * 1000) + 100 // Simulated speed
-      } else {
-        error = `HTTP ${response.status}: ${response.statusText}`
-      }
-    } catch (err) {
-      if (err instanceof Error) {
-        if (err.name === 'AbortError') {
-          error = 'Connection timeout'
-        } else {
-          error = err.message
-        }
-      } else {
-        error = 'Unknown error occurred'
-      }
+    // Validate proxy configuration
+    const validation = RealProxyTester.validateProxy({ host, port, username, password, type })
+    if (!validation.valid) {
+      return NextResponse.json({ 
+        success: false, 
+        error: validation.error 
+      }, { status: 400 })
     }
 
+    // Test proxy using the real tester
+    const result = await RealProxyTester.testProxy(
+      { host, port, username, password, type },
+      testUrl || 'https://web.telegram.org/'
+    )
+
     return NextResponse.json({
-      success,
-      ping: success ? ping : undefined,
-      speed: success ? speed : undefined,
-      error: success ? undefined : error,
+      success: result.success,
+      ping: result.ping,
+      speed: result.speed,
+      responseTime: result.responseTime,
+      statusCode: result.statusCode,
+      error: result.error,
+      data: result.data,
+      country: result.country,
+      city: result.city,
+      region: result.region,
+      isp: result.isp,
+      publicIP: result.publicIP,
+      anonymity: result.anonymity,
       timestamp: new Date().toISOString()
     })
 

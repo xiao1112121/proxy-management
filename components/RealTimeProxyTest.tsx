@@ -12,9 +12,11 @@ import {
   AlertTriangle,
   Globe,
   Activity,
-  Settings
+  Settings,
+  ChevronDown
 } from 'lucide-react'
 import { SimpleProxy as Proxy } from '@/types/proxy'
+import TestUrlSelector from './TestUrlSelector'
 
 interface TestResult {
   id: number
@@ -43,6 +45,9 @@ export default function RealTimeProxyTest({ proxies, onUpdateProxy }: RealTimePr
     retryFailed: true,
     retryCount: 2
   })
+  const [testUrl, setTestUrl] = useState('https://www.instagram.com/')
+  const [showUrlSelector, setShowUrlSelector] = useState(false)
+  const [urlSelectorPosition, setUrlSelectorPosition] = useState<{ x: number; y: number } | null>(null)
   const [stats, setStats] = useState({
     totalTests: 0,
     successfulTests: 0,
@@ -53,6 +58,25 @@ export default function RealTimeProxyTest({ proxies, onUpdateProxy }: RealTimePr
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const testCountRef = useRef(0)
+
+  // URL selector handlers
+  const handleUrlSelect = (url: string) => {
+    setTestUrl(url)
+    setShowUrlSelector(false)
+  }
+
+  const handleUrlSelectorClick = (event: React.MouseEvent) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    setUrlSelectorPosition({
+      x: rect.left,
+      y: rect.bottom + 5
+    })
+    setShowUrlSelector(true)
+  }
+
+  const handleCloseUrlSelector = () => {
+    setShowUrlSelector(false)
+  }
 
   useEffect(() => {
     if (isRunning) {
@@ -68,31 +92,39 @@ export default function RealTimeProxyTest({ proxies, onUpdateProxy }: RealTimePr
   }, [testResults])
 
   const startTesting = () => {
+    console.log('startTesting called, intervalRef.current:', intervalRef.current)
     if (intervalRef.current) return
     
+    console.log('Starting tests with interval:', testSettings.interval)
     // Initial test
     runTests()
     
     // Set up interval
     intervalRef.current = setInterval(() => {
+      console.log('Interval triggered, running tests...')
       runTests()
     }, testSettings.interval)
   }
 
   const stopTesting = () => {
+    console.log('stopTesting called, intervalRef.current:', intervalRef.current)
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
       intervalRef.current = null
+      console.log('Interval cleared')
     }
     setCurrentTest(null)
   }
 
   const runTests = async () => {
-    const aliveProxies = proxies.filter(p => p.status === 'alive' || p.status === 'pending')
-    const shuffledProxies = [...aliveProxies].sort(() => Math.random() - 0.5)
+    // Test all proxies, not just alive ones
+    const allProxies = proxies.filter(p => p.host && p.port)
+    const shuffledProxies = [...allProxies].sort(() => Math.random() - 0.5)
     
     // Limit concurrent tests
     const proxiesToTest = shuffledProxies.slice(0, testSettings.maxConcurrent)
+    
+    console.log('Running tests for proxies:', proxiesToTest.map(p => `${p.host}:${p.port}`))
     
     for (const proxy of proxiesToTest) {
       if (testQueue.includes(proxy.id)) continue
@@ -142,7 +174,8 @@ export default function RealTimeProxyTest({ proxies, onUpdateProxy }: RealTimePr
           port: proxy.port,
           username: proxy.username,
           password: proxy.password,
-          type: proxy.type
+          type: proxy.type,
+          testUrl: testUrl
         })
       })
 
@@ -221,36 +254,77 @@ export default function RealTimeProxyTest({ proxies, onUpdateProxy }: RealTimePr
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Test Real-time</h2>
           <p className="text-gray-600">Test proxy tự động theo chu kỳ</p>
+          {isRunning && (
+            <div className="flex items-center space-x-2 mt-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm text-green-600 font-medium">Đang chạy...</span>
+              {currentTest && (
+                <span className="text-sm text-blue-600">
+                  (Testing proxy ID: {currentTest})
+                </span>
+              )}
+            </div>
+          )}
         </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => setIsRunning(!isRunning)}
-            className={`btn ${isRunning ? 'btn-secondary' : 'btn-primary'}`}
-          >
-            {isRunning ? (
-              <>
-                <Pause className="h-4 w-4 mr-2" />
-                Dừng
-              </>
-            ) : (
-              <>
-                <Play className="h-4 w-4 mr-2" />
-                Bắt đầu
-              </>
-            )}
-          </button>
-          <button
-            onClick={() => {
-              setTestResults({})
-              setTestQueue([])
-              setCurrentTest(null)
-              testCountRef.current = 0
-            }}
-            className="btn btn-outline"
-          >
-            <Square className="h-4 w-4 mr-2" />
-            Reset
-          </button>
+        <div className="flex items-center space-x-4">
+          {/* URL Selector */}
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium text-gray-700">URL Test:</label>
+            <button
+              onClick={handleUrlSelectorClick}
+              className="flex items-center space-x-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+            >
+              <Globe className="h-4 w-4" />
+              <span className="max-w-xs truncate">
+                {testUrl === 'https://www.instagram.com/' ? 'Instagram' : 
+                 testUrl === 'https://web.telegram.org/' ? 'Telegram' :
+                 testUrl === 'https://www.facebook.com/' ? 'Facebook' :
+                 testUrl === 'https://twitter.com/' ? 'Twitter' :
+                 testUrl === 'https://www.youtube.com/' ? 'YouTube' :
+                 testUrl}
+              </span>
+              <ChevronDown className="h-4 w-4" />
+            </button>
+          </div>
+          
+          <div className="flex space-x-2">
+            <button
+              onClick={() => {
+                console.log('Button clicked! Current isRunning:', isRunning)
+                setIsRunning(!isRunning)
+              }}
+              className={`flex items-center space-x-2 px-4 py-2 text-white rounded-lg ${
+                isRunning 
+                  ? 'bg-red-600 hover:bg-red-700' 
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
+            >
+              {isRunning ? (
+                <>
+                  <Pause className="h-4 w-4" />
+                  <span>Dừng</span>
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4" />
+                  <span>Bắt đầu</span>
+                </>
+              )}
+            </button>
+            
+            <button
+              onClick={() => {
+                setTestResults({})
+                setTestQueue([])
+                setCurrentTest(null)
+                testCountRef.current = 0
+              }}
+              className="flex items-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
+            >
+              <Square className="h-4 w-4" />
+              <span>Reset</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -260,116 +334,49 @@ export default function RealTimeProxyTest({ proxies, onUpdateProxy }: RealTimePr
           <div className="flex items-center">
             <Zap className="h-5 w-5 text-blue-500 mr-2" />
             <div>
-              <p className="text-sm text-gray-600">Tổng test</p>
-              <p className="text-xl font-bold text-gray-900">{stats.totalTests}</p>
+              <p className="text-sm font-medium text-gray-600">Tổng Tests</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalTests}</p>
             </div>
           </div>
         </div>
+
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center">
             <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
             <div>
-              <p className="text-sm text-gray-600">Thành công</p>
-              <p className="text-xl font-bold text-gray-900">{stats.successfulTests}</p>
+              <p className="text-sm font-medium text-gray-600">Thành công</p>
+              <p className="text-2xl font-bold text-green-600">{stats.successfulTests}</p>
             </div>
           </div>
         </div>
+
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center">
             <XCircle className="h-5 w-5 text-red-500 mr-2" />
             <div>
-              <p className="text-sm text-gray-600">Thất bại</p>
-              <p className="text-xl font-bold text-gray-900">{stats.failedTests}</p>
+              <p className="text-sm font-medium text-gray-600">Thất bại</p>
+              <p className="text-2xl font-bold text-red-600">{stats.failedTests}</p>
             </div>
           </div>
         </div>
+
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center">
             <Clock className="h-5 w-5 text-yellow-500 mr-2" />
             <div>
-              <p className="text-sm text-gray-600">Ping TB</p>
-              <p className="text-xl font-bold text-gray-900">{stats.averagePing}ms</p>
+              <p className="text-sm font-medium text-gray-600">Ping TB</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.averagePing}ms</p>
             </div>
           </div>
         </div>
+
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center">
             <Activity className="h-5 w-5 text-purple-500 mr-2" />
             <div>
-              <p className="text-sm text-gray-600">Tốc độ TB</p>
-              <p className="text-xl font-bold text-gray-900">{stats.averageSpeed} KB/s</p>
+              <p className="text-sm font-medium text-gray-600">Tốc độ TB</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.averageSpeed}ms</p>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Settings */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Cài đặt Test</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Chu kỳ test (giây)
-            </label>
-            <input
-              type="number"
-              value={testSettings.interval / 1000}
-              onChange={(e) => setTestSettings(prev => ({
-                ...prev,
-                interval: parseInt(e.target.value) * 1000
-              }))}
-              className="input"
-              min="10"
-              max="300"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Timeout (giây)
-            </label>
-            <input
-              type="number"
-              value={testSettings.timeout / 1000}
-              onChange={(e) => setTestSettings(prev => ({
-                ...prev,
-                timeout: parseInt(e.target.value) * 1000
-              }))}
-              className="input"
-              min="5"
-              max="60"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Test đồng thời
-            </label>
-            <input
-              type="number"
-              value={testSettings.maxConcurrent}
-              onChange={(e) => setTestSettings(prev => ({
-                ...prev,
-                maxConcurrent: parseInt(e.target.value)
-              }))}
-              className="input"
-              min="1"
-              max="10"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Số lần retry
-            </label>
-            <input
-              type="number"
-              value={testSettings.retryCount}
-              onChange={(e) => setTestSettings(prev => ({
-                ...prev,
-                retryCount: parseInt(e.target.value)
-              }))}
-              className="input"
-              min="0"
-              max="5"
-            />
           </div>
         </div>
       </div>
@@ -377,72 +384,70 @@ export default function RealTimeProxyTest({ proxies, onUpdateProxy }: RealTimePr
       {/* Proxy List */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-900">Danh sách Proxy</h3>
-            <span className="text-sm text-gray-500">
-              Tổng: {proxies.length} proxy
-            </span>
-          </div>
+          <h3 className="text-lg font-medium text-gray-900">Danh sách Proxy ({proxies.length})</h3>
         </div>
-        <div className="max-h-96 overflow-y-auto">
-          <div className="divide-y divide-gray-200">
-            {proxies.length === 0 ? (
-              <div className="px-6 py-8 text-center">
-                <div className="text-gray-400 mb-2">
-                  <Globe className="h-12 w-12 mx-auto" />
-                </div>
-                <p className="text-gray-500">Chưa có proxy nào</p>
-                <p className="text-sm text-gray-400">Thêm proxy để bắt đầu test real-time</p>
-              </div>
-            ) : (
-              proxies.map((proxy) => {
-                const result = testResults[proxy.id]
-                return (
-                  <div key={proxy.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center space-x-4">
-                      {getStatusIcon(proxy.id)}
-                      <div>
-                        <p className="font-medium text-gray-900">{proxy.host}:{proxy.port}</p>
-                        <p className="text-sm text-gray-600">{proxy.type} - {getStatusText(proxy.id)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      {result && (
-                        <>
-                          {result.ping && (
-                            <div className="text-center">
-                              <span className="text-sm font-medium text-gray-900">{result.ping}ms</span>
-                              <p className="text-xs text-gray-500">Ping</p>
-                            </div>
-                          )}
-                          {result.speed && (
-                            <div className="text-center">
-                              <span className="text-sm font-medium text-gray-900">{result.speed} KB/s</span>
-                              <p className="text-xs text-gray-500">Speed</p>
-                            </div>
-                          )}
-                          <div className="text-center">
-                            <span className="text-xs text-gray-500">
-                              {new Date(result.timestamp).toLocaleTimeString('vi-VN')}
-                            </span>
-                            <p className="text-xs text-gray-400">Lần cuối</p>
-                          </div>
-                        </>
-                      )}
-                      {currentTest === proxy.id && (
-                        <div className="flex items-center space-x-2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                          <span className="text-xs text-blue-600 font-medium">Testing...</span>
-                        </div>
-                      )}
+        <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+          {proxies.length === 0 ? (
+            <div className="px-6 py-8 text-center">
+              <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Không có proxy nào để test</p>
+            </div>
+          ) : (
+            proxies.map((proxy) => {
+              const result = testResults[proxy.id]
+              return (
+                <div key={proxy.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    {getStatusIcon(proxy.id)}
+                    <div>
+                      <p className="font-medium text-gray-900">{proxy.host}:{proxy.port}</p>
+                      <p className="text-sm text-gray-600">{proxy.type} - {getStatusText(proxy.id)}</p>
                     </div>
                   </div>
-                )
-              })
-            )}
-          </div>
+                  <div className="text-right">
+                    {result && (
+                      <>
+                        <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          {result.ping && (
+                            <span>Ping: {result.ping}ms</span>
+                          )}
+                          {result.speed && (
+                            <span>Speed: {result.speed}ms</span>
+                          )}
+                          {result.responseTime && (
+                            <span>Response: {result.responseTime}ms</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          <span>
+                            {new Date(result.timestamp).toLocaleTimeString()}
+                          </span>
+                          <p className="text-xs text-gray-400">Lần cuối</p>
+                        </div>
+                      </>
+                    )}
+                    {currentTest === proxy.id && (
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                        <span className="text-xs text-blue-600 font-medium">Testing...</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          )}
         </div>
       </div>
+
+      {/* URL Selector Modal */}
+      {showUrlSelector && (
+        <TestUrlSelector
+          onUrlSelect={handleUrlSelect}
+          onClose={handleCloseUrlSelector}
+          position={urlSelectorPosition || undefined}
+        />
+      )}
     </div>
   )
 }

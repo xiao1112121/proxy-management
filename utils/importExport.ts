@@ -1,7 +1,7 @@
 import { SimpleProxy as Proxy } from '@/types/proxy'
 
 export interface ExportOptions {
-  format: 'json' | 'csv' | 'txt' | 'xml'
+  format: 'json' | 'csv' | 'txt' | 'xml' | 'yaml'
   includeCredentials: boolean
   includeStats: boolean
   filter?: {
@@ -31,6 +31,8 @@ export class ProxyImportExport {
         return this.exportToTXT(filteredProxies, options)
       case 'xml':
         return this.exportToXML(filteredProxies, options)
+      case 'yaml':
+        return this.exportToYAML(filteredProxies, options)
       default:
         throw new Error('Unsupported export format')
     }
@@ -49,6 +51,9 @@ export class ProxyImportExport {
         return this.importFromTXT(content)
       case 'xml':
         return this.importFromXML(content)
+      case 'yaml':
+      case 'yml':
+        return this.importFromYAML(content)
       default:
         return this.importFromTXT(content) // Default to TXT
     }
@@ -447,6 +452,129 @@ export class ProxyImportExport {
     const regex = new RegExp(`<${tag}>(.*?)</${tag}>`, 's')
     const match = xml.match(regex)
     return match ? match[1].trim() : undefined
+  }
+
+  private static exportToYAML(proxies: Proxy[], options: ExportOptions): string {
+    let yaml = '# Proxy Export\n'
+    yaml += `# Generated: ${new Date().toISOString()}\n`
+    yaml += `# Total: ${proxies.length} proxies\n\n`
+    
+    yaml += 'proxies:\n'
+    
+    proxies.forEach((proxy, index) => {
+      yaml += `  - id: ${proxy.id}\n`
+      yaml += `    host: ${proxy.host}\n`
+      yaml += `    port: ${proxy.port}\n`
+      yaml += `    type: ${proxy.type}\n`
+      yaml += `    status: ${proxy.status}\n`
+      
+      if (options.includeCredentials) {
+        if (proxy.username) yaml += `    username: ${proxy.username}\n`
+        if (proxy.password) yaml += `    password: ${proxy.password}\n`
+      }
+      
+      if (options.includeStats) {
+        if (proxy.ping) yaml += `    ping: ${proxy.ping}\n`
+        if (proxy.speed) yaml += `    speed: ${proxy.speed}\n`
+        if (proxy.country) yaml += `    country: ${proxy.country}\n`
+        if (proxy.city) yaml += `    city: ${proxy.city}\n`
+        if (proxy.anonymity) yaml += `    anonymity: ${proxy.anonymity}\n`
+        if (proxy.publicIP) yaml += `    publicIP: ${proxy.publicIP}\n`
+      }
+      
+      if (proxy.group) yaml += `    group: ${proxy.group}\n`
+      if (proxy.notes) yaml += `    notes: ${proxy.notes}\n`
+      if (proxy.lastTested) yaml += `    lastTested: ${proxy.lastTested}\n`
+      
+      if (index < proxies.length - 1) yaml += '\n'
+    })
+    
+    return yaml
+  }
+
+  private static importFromYAML(content: string): ImportResult {
+    try {
+      // Simple YAML parsing - in production, use a proper YAML parser
+      const proxies: Proxy[] = []
+      const errors: string[] = []
+      
+      const lines = content.split('\n')
+      let currentProxy: any = {}
+      let inProxies = false
+      let proxyIndex = 0
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim()
+        
+        if (line === 'proxies:') {
+          inProxies = true
+          continue
+        }
+        
+        if (inProxies && line.startsWith('- id:')) {
+          if (Object.keys(currentProxy).length > 0) {
+            // Process previous proxy
+            const proxy = this.parseYAMLProxy(currentProxy, proxyIndex)
+            if (proxy) proxies.push(proxy)
+            proxyIndex++
+          }
+          currentProxy = { id: line.split(':')[1].trim() }
+        } else if (inProxies && line.includes(':')) {
+          const [key, value] = line.split(':', 2)
+          currentProxy[key.trim()] = value.trim()
+        }
+      }
+      
+      // Process last proxy
+      if (Object.keys(currentProxy).length > 0) {
+        const proxy = this.parseYAMLProxy(currentProxy, proxyIndex)
+        if (proxy) proxies.push(proxy)
+      }
+      
+      return {
+        success: proxies.length > 0,
+        imported: proxies,
+        errors,
+        total: proxies.length
+      }
+    } catch (error) {
+      return {
+        success: false,
+        imported: [],
+        errors: ['Invalid YAML format'],
+        total: 0
+      }
+    }
+  }
+
+  private static parseYAMLProxy(data: any, index: number): Proxy | null {
+    try {
+      const proxy: Proxy = {
+        id: parseInt(data.id) || Date.now() + index,
+        host: data.host || '',
+        port: parseInt(data.port) || 8080,
+        username: data.username,
+        password: data.password,
+        type: data.type || 'http',
+        status: (data.status as 'alive' | 'dead' | 'pending' | 'testing') || 'pending',
+        group: data.group,
+        notes: data.notes,
+        ping: data.ping ? parseInt(data.ping) : undefined,
+        speed: data.speed ? parseInt(data.speed) : undefined,
+        country: data.country,
+        city: data.city,
+        anonymity: data.anonymity,
+        publicIP: data.publicIP,
+        lastTested: data.lastTested || new Date().toISOString()
+      }
+
+      if (proxy.host && proxy.port) {
+        return proxy
+      }
+      return null
+    } catch (error) {
+      return null
+    }
   }
 
   private static escapeXml(str: string): string {

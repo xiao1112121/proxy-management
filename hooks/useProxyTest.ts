@@ -6,6 +6,12 @@ interface TestResult {
   ping?: number
   speed?: number
   error?: string
+  country?: string
+  city?: string
+  region?: string
+  isp?: string
+  publicIP?: string
+  anonymity?: 'transparent' | 'anonymous' | 'elite'
 }
 
 const successRates: Record<string, number> = {
@@ -48,7 +54,13 @@ export function useProxyTest() {
         success: data.success,
         ping: data.ping,
         speed: data.speed,
-        error: data.error
+        error: data.error,
+        country: data.country,
+        city: data.city,
+        region: data.region,
+        isp: data.isp,
+        publicIP: data.publicIP,
+        anonymity: data.anonymity
       }
 
       setResults(prev => ({ ...prev, [proxyId]: result }))

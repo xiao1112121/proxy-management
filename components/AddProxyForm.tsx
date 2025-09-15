@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { X, Save, AlertCircle } from 'lucide-react'
 import { SimpleProxy as Proxy } from '@/types/proxy'
 
@@ -254,7 +254,7 @@ export default function AddProxyForm({ isOpen, onClose, onAddProxy }: AddProxyFo
                   value={formData.group}
                   onChange={(e) => handleInputChange('group', e.target.value)}
                   className="input"
-                  placeholder="Premium, Free, Test..."
+                  placeholder="Cao cấp, Miễn phí, Kiểm tra..."
                 />
               </div>
 

@@ -17,12 +17,78 @@ interface TestUrl {
 }
 
 const defaultUrls: Omit<TestUrl, 'id'>[] = [
+  // Social Media & Communication Tests
+  {
+    name: 'Telegram Web',
+    url: 'https://web.telegram.org/',
+    type: 'ip',
+    description: 'Test proxy với Telegram Web',
+    isDefault: true,
+    isActive: true
+  },
+  {
+    name: 'Telegram API',
+    url: 'https://api.telegram.org/bot/getMe',
+    type: 'ip',
+    description: 'Test proxy với Telegram API',
+    isDefault: true,
+    isActive: true
+  },
+  {
+    name: 'WhatsApp Web',
+    url: 'https://web.whatsapp.com/',
+    type: 'ip',
+    description: 'Test proxy với WhatsApp Web',
+    isDefault: true,
+    isActive: true
+  },
+  {
+    name: 'Facebook',
+    url: 'https://www.facebook.com/',
+    type: 'ip',
+    description: 'Test proxy với Facebook',
+    isDefault: true,
+    isActive: true
+  },
+  {
+    name: 'Instagram',
+    url: 'https://www.instagram.com/',
+    type: 'ip',
+    description: 'Test proxy với Instagram',
+    isDefault: true,
+    isActive: true
+  },
+  {
+    name: 'Twitter/X',
+    url: 'https://twitter.com/',
+    type: 'ip',
+    description: 'Test proxy với Twitter/X',
+    isDefault: true,
+    isActive: true
+  },
+  {
+    name: 'YouTube',
+    url: 'https://www.youtube.com/',
+    type: 'speed',
+    description: 'Test tốc độ với YouTube',
+    isDefault: true,
+    isActive: true
+  },
+  {
+    name: 'TikTok',
+    url: 'https://www.tiktok.com/',
+    type: 'speed',
+    description: 'Test tốc độ với TikTok',
+    isDefault: true,
+    isActive: true
+  },
+  // IP Detection Tests
   {
     name: 'IP Check - httpbin.org',
     url: 'https://httpbin.org/ip',
     type: 'ip',
     description: 'Kiểm tra IP public',
-    isDefault: true,
+    isDefault: false,
     isActive: true
   },
   {
@@ -30,23 +96,7 @@ const defaultUrls: Omit<TestUrl, 'id'>[] = [
     url: 'https://api.ipify.org?format=json',
     type: 'ip',
     description: 'Kiểm tra IP public (backup)',
-    isDefault: true,
-    isActive: true
-  },
-  {
-    name: 'Speed Test - httpbin.org',
-    url: 'https://httpbin.org/bytes/1024',
-    type: 'speed',
-    description: 'Test tốc độ tải 1KB',
-    isDefault: true,
-    isActive: true
-  },
-  {
-    name: 'Anonymity Test - httpbin.org',
-    url: 'https://httpbin.org/headers',
-    type: 'anonymity',
-    description: 'Kiểm tra headers ẩn danh',
-    isDefault: true,
+    isDefault: false,
     isActive: true
   },
   {
@@ -54,7 +104,7 @@ const defaultUrls: Omit<TestUrl, 'id'>[] = [
     url: 'https://ipapi.co/json/',
     type: 'geolocation',
     description: 'Kiểm tra vị trí địa lý',
-    isDefault: true,
+    isDefault: false,
     isActive: true
   },
   {
@@ -62,7 +112,7 @@ const defaultUrls: Omit<TestUrl, 'id'>[] = [
     url: 'https://dnsleaktest.com/api/dnsleak',
     type: 'dns',
     description: 'Kiểm tra DNS leak',
-    isDefault: true,
+    isDefault: false,
     isActive: false
   }
 ]

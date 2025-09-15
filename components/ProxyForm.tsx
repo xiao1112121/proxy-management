@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
+import { useLanguage } from '@/lib/i18n'
 import { Plus, Upload, Download, FileText, Database, Globe, Settings } from 'lucide-react'
-import { SimpleProxy as Proxy } from '@/types/proxy'
+import { SimpleProxy as Proxy, ProxyType } from '@/types/proxy'
+import ProxyTypeInfo from './ProxyTypeInfo'
 // import ImportExportModal from './ImportExportModal'
 
 interface ProxyFormProps {
@@ -10,12 +12,13 @@ interface ProxyFormProps {
 }
 
 export default function ProxyForm({ onSubmit }: ProxyFormProps) {
+  const { t } = useLanguage()
   const [formData, setFormData] = useState({
     host: '',
     port: '',
     username: '',
     password: '',
-    type: 'http' as const,
+    type: 'http' as ProxyType,
     group: '',
     notes: ''
   })
@@ -27,13 +30,13 @@ export default function ProxyForm({ onSubmit }: ProxyFormProps) {
     const newErrors: Record<string, string> = {}
 
     if (!formData.host.trim()) {
-      newErrors.host = 'Host là bắt buộc'
+      newErrors.host = t('forms.hostRequired')
     }
 
     if (!formData.port.trim()) {
-      newErrors.port = 'Port là bắt buộc'
+      newErrors.port = t('forms.portRequired')
     } else if (isNaN(Number(formData.port)) || Number(formData.port) < 1 || Number(formData.port) > 65535) {
-      newErrors.port = 'Port phải là số từ 1-65535'
+      newErrors.port = t('forms.invalidPortRange')
     }
 
     setErrors(newErrors)
@@ -103,13 +106,13 @@ export default function ProxyForm({ onSubmit }: ProxyFormProps) {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Thêm Proxy Mới</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('proxyList.addNewProxy')}</h2>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Host <span className="text-red-500">*</span>
+                {t('common.host')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -123,7 +126,7 @@ export default function ProxyForm({ onSubmit }: ProxyFormProps) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Port <span className="text-red-500">*</span>
+                {t('common.port')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -139,7 +142,7 @@ export default function ProxyForm({ onSubmit }: ProxyFormProps) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Username
+                {t('common.username')}
               </label>
               <input
                 type="text"
@@ -152,7 +155,7 @@ export default function ProxyForm({ onSubmit }: ProxyFormProps) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+                {t('common.password')}
               </label>
               <input
                 type="password"
@@ -163,23 +166,14 @@ export default function ProxyForm({ onSubmit }: ProxyFormProps) {
               />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Loại Proxy
+                {t('form.proxyType')}
               </label>
-              <select
-                value={formData.type}
-                onChange={(e) => handleInputChange('type', e.target.value)}
-                className="input"
-              >
-                <option value="http">HTTP</option>
-                <option value="https">HTTPS</option>
-                <option value="socks4">SOCKS4</option>
-                <option value="socks5">SOCKS5</option>
-                <option value="residential">Residential</option>
-                <option value="datacenter">Datacenter</option>
-                <option value="mobile">Mobile</option>
-              </select>
+              <ProxyTypeInfo 
+                selectedType={formData.type}
+                onTypeSelect={(type) => setFormData({ ...formData, type })}
+              />
             </div>
 
             <div>
@@ -248,7 +242,7 @@ export default function ProxyForm({ onSubmit }: ProxyFormProps) {
             className="btn btn-secondary btn-sm"
           >
             <Settings className="h-4 w-4 mr-2" />
-            Chuyển sang tab Import
+            Chuyển sang tab Nhập
           </button>
         </div>
         
@@ -270,18 +264,18 @@ export default function ProxyForm({ onSubmit }: ProxyFormProps) {
             </div>
           </div>
           <p className="text-sm text-gray-500 mt-4">
-            Nhấn nút "Mở cửa sổ Import/Export" để sử dụng các tính năng nâng cao
+            Nhấn nút "Mở cửa sổ Nhập/Xuất" để sử dụng các tính năng nâng cao
           </p>
         </div>
       </div>
 
       {/* Real Testing Info */}
       <div className="card p-6 bg-green-50">
-        <h3 className="text-lg font-medium text-green-900 mb-3">✅ Test Proxy Thật</h3>
+        <h3 className="text-lg font-medium text-green-900 mb-3">✅ Kiểm tra Proxy Thật</h3>
         <div className="space-y-2 text-sm text-green-800">
-          <p><strong>Kết nối thật:</strong> Test kết nối thực tế đến proxy server</p>
+          <p><strong>Kết nối thật:</strong> Kiểm tra kết nối thực tế đến proxy server</p>
           <p><strong>HTTP Request:</strong> Gửi request thật qua proxy để kiểm tra</p>
-          <p><strong>Đo tốc độ:</strong> Test tốc độ thực tế của proxy</p>
+          <p><strong>Đo tốc độ:</strong> Kiểm tra tốc độ thực tế của proxy</p>
           <p><strong>Kiểm tra ẩn danh:</strong> Phân tích headers để xác định mức độ ẩn danh</p>
           <p><strong>IP công khai:</strong> Hiển thị IP thật mà proxy sử dụng</p>
         </div>

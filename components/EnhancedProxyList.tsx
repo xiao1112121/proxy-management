@@ -6,6 +6,10 @@ import { SimpleProxy as Proxy } from '@/types/proxy'
 import { ProxyImportExport } from '@/utils/importExport'
 import AdvancedSearch from './AdvancedSearch'
 import AddProxyForm from './AddProxyForm'
+import EnhancedBulkActions from './EnhancedBulkActions'
+import ProxyHealthIndicator from './ProxyHealthIndicator'
+import { useProxyHealthMonitoring } from '@/hooks/useProxyHealthMonitoring'
+import TestUrlSelector from './TestUrlSelector'
 
 interface EnhancedProxyListProps {
   proxies: Proxy[]
@@ -36,6 +40,9 @@ export default function EnhancedProxyList({
   onSelectAll,
   onAddProxy
 }: EnhancedProxyListProps) {
+  // Health monitoring
+  const { healthMetrics } = useProxyHealthMonitoring(proxies)
+  
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -45,6 +52,35 @@ export default function EnhancedProxyList({
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editForm, setEditForm] = useState<Partial<Proxy>>({})
   const [showPassword, setShowPassword] = useState<Record<number, boolean>>({})
+  const [showTestUrlSelector, setShowTestUrlSelector] = useState(false)
+  const [testUrlSelectorPosition, setTestUrlSelectorPosition] = useState<{ x: number; y: number } | null>(null)
+  const [currentTestProxyId, setCurrentTestProxyId] = useState<number | null>(null)
+  const [testUrl, setTestUrl] = useState('https://web.telegram.org/')
+
+  // Handle test click with URL selector
+  const handleTestClick = (proxyId: number, event: React.MouseEvent) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    setTestUrlSelectorPosition({
+      x: rect.left,
+      y: rect.bottom + 5
+    })
+    setCurrentTestProxyId(proxyId)
+    setShowTestUrlSelector(true)
+  }
+
+  const handleUrlSelect = (url: string) => {
+    setTestUrl(url)
+    if (currentTestProxyId) {
+      onTestSelected([currentTestProxyId])
+    }
+    setShowTestUrlSelector(false)
+    setCurrentTestProxyId(null)
+  }
+
+  const handleCloseTestUrlSelector = () => {
+    setShowTestUrlSelector(false)
+    setCurrentTestProxyId(null)
+  }
 
   // Update filteredProxies when proxies change
   React.useEffect(() => {
@@ -149,12 +185,13 @@ export default function EnhancedProxyList({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="bg-white rounded-lg border border-gray-200 flex flex-col h-[700px]">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Danh sách Proxy</h2>
-        <div className="flex space-x-2">
-          <button
+      <div className="p-4 border-b border-gray-200 flex-shrink-0">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-gray-900">Danh sách Proxy</h2>
+          <div className="flex space-x-2">
+            <button
             onClick={() => onTestSelected(selectedProxies)}
             disabled={selectedProxies.length === 0}
             className="btn btn-primary btn-sm bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
@@ -195,9 +232,12 @@ export default function EnhancedProxyList({
               Làm mới
             </button>
           )}
+          </div>
         </div>
       </div>
 
+      {/* Content */}
+      <div className="flex-1 overflow-auto p-4 space-y-4">
       {/* Advanced Search */}
       <div className="bg-white border rounded-lg p-4 shadow-sm">
         <AdvancedSearch
@@ -219,19 +259,22 @@ export default function EnhancedProxyList({
             Hiển thị <strong>{filteredProxies.length}</strong> trong tổng số <strong>{proxies.length}</strong> proxy
           </span>
           {selectedProxies.length > 0 && (
-            <div className="flex items-center space-x-2">
-              <span>Đã chọn <strong>{selectedProxies.length}</strong> proxy</span>
-              <button
-                onClick={() => onBulkDelete(selectedProxies)}
-                className="text-red-600 hover:text-red-800 font-medium"
-              >
-                <Trash2 className="h-4 w-4 inline mr-1" />
-                Xóa đã chọn
-              </button>
-            </div>
+            <span>Đã chọn <strong>{selectedProxies.length}</strong> proxy</span>
           )}
         </div>
       </div>
+
+      {/* Enhanced Bulk Actions */}
+      {selectedProxies.length > 0 && (
+        <EnhancedBulkActions
+          selectedProxies={selectedProxies}
+          selectedProxiesData={filteredProxies.filter(p => selectedProxies.includes(p.id))}
+          onBulkDelete={onBulkDelete}
+          onBulkUpdate={onBulkUpdate}
+          onBulkTest={onTestSelected}
+          onBulkExport={onBulkExport}
+        />
+      )}
 
       {/* Proxy Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -260,6 +303,9 @@ export default function EnhancedProxyList({
                   Hiệu suất
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Health
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Địa điểm
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -273,7 +319,7 @@ export default function EnhancedProxyList({
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredProxies.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <div className="text-gray-400 mb-2">
                       <Globe className="h-12 w-12 mx-auto" />
                     </div>
@@ -333,6 +379,12 @@ export default function EnhancedProxyList({
                       </div>
                     </td>
                     <td className="px-6 py-4">
+                      <ProxyHealthIndicator 
+                        metrics={healthMetrics.get(proxy.id)} 
+                        compact={true}
+                      />
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="space-y-1">
                         {proxy.country && (
                           <div className="text-sm text-gray-900">{proxy.country}</div>
@@ -350,9 +402,9 @@ export default function EnhancedProxyList({
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end space-x-2">
                         <button
-                          onClick={() => onTestSelected([proxy.id])}
+                          onClick={(e) => handleTestClick(proxy.id, e)}
                           className="text-blue-600 hover:text-blue-900 p-1"
-                          title="Test proxy"
+                          title="Kiểm tra proxy"
                         >
                           <Play className="h-4 w-4" />
                         </button>
@@ -395,17 +447,40 @@ export default function EnhancedProxyList({
                 </button>
               </div>
               <AddProxyForm
+                isOpen={showAddProxyModal}
+                onClose={() => setShowAddProxyModal(false)}
                 onAddProxy={(proxy) => {
                   if (onAddProxy) {
                     onAddProxy(proxy)
                   }
                   setShowAddProxyModal(false)
                 }}
-                onCancel={() => setShowAddProxyModal(false)}
               />
             </div>
           </div>
         </div>
+      )}
+      </div>
+
+      {/* Footer */}
+      <div className="px-4 py-2 border-t border-gray-200 flex-shrink-0">
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <div className="flex items-center space-x-3">
+            <span>Hiển thị {filteredProxies.length} của {proxies.length} proxy</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <span className="text-xs text-gray-400">Enhanced Proxy List</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Test URL Selector */}
+      {showTestUrlSelector && testUrlSelectorPosition && (
+        <TestUrlSelector
+          onUrlSelect={handleUrlSelect}
+          onClose={handleCloseTestUrlSelector}
+          position={testUrlSelectorPosition}
+        />
       )}
     </div>
   )
