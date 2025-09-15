@@ -6,6 +6,10 @@ import { LanguageProvider } from '@/lib/i18n'
 import { AuthProvider } from '@/contexts/AuthContext'
 import React from 'react'
 import BaiduAnalytics from '@/components/BaiduAnalytics'
+import IubendaConsent from '@/components/IubendaConsent'
+import CookieConsentBanner from '@/components/CookieConsentBanner'
+import CookiePreferencesManager from '@/components/CookiePreferencesManager'
+import Footer from '@/components/Footer'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -40,6 +44,9 @@ export default function RootLayout({
         
         {/* Baidu Analytics */}
         <BaiduAnalytics />
+        
+        {/* Iubenda Cookie Consent */}
+        <IubendaConsent />
       </head>
       <body className={inter.className}>
         <AuthProvider>
@@ -48,6 +55,9 @@ export default function RootLayout({
               <div className="min-h-screen bg-gray-50">
                 {children}
               </div>
+              <Footer />
+              <CookieConsentBanner />
+              <CookiePreferencesManager />
             </Providers>
           </LanguageProvider>
         </AuthProvider>
