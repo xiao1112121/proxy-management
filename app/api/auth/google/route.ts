@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const code = searchParams.get('code')
 
     if (!code) {
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=no_code`)
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://proxymanagerapp.netlify.app'
+      return NextResponse.redirect(`${baseUrl}/login?error=no_code`)
     }
 
     // Exchange code for access token
@@ -21,14 +24,15 @@ export async function GET(request: NextRequest) {
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
         code,
         grant_type: 'authorization_code',
-        redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/google`,
+        redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://proxymanagerapp.netlify.app'}/api/auth/google`,
       }),
     })
 
     const tokenData = await tokenResponse.json()
 
     if (!tokenData.access_token) {
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=token_failed`)
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://proxymanagerapp.netlify.app'
+      return NextResponse.redirect(`${baseUrl}/login?error=token_failed`)
     }
 
     // Get user info from Google
@@ -53,7 +57,8 @@ export async function GET(request: NextRequest) {
     )
 
     // Redirect to homepage with token and user data
-    const redirectUrl = new URL(process.env.NEXT_PUBLIC_BASE_URL!)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://proxymanagerapp.netlify.app'
+    const redirectUrl = new URL(baseUrl)
     redirectUrl.searchParams.set('token', token)
     redirectUrl.searchParams.set('user', JSON.stringify({
       id: userData.id,
@@ -66,6 +71,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Google OAuth error:', error)
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=oauth_failed`)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://proxymanagerapp.netlify.app'
+    return NextResponse.redirect(`${baseUrl}/login?error=oauth_failed`)
   }
 }
