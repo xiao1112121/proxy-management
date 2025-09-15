@@ -1,176 +1,103 @@
-# 🔐 Hướng dẫn cấu hình Authentication
+# Hướng dẫn cấu hình Authentication
 
-## 📋 Tổng quan
-Ứng dụng đã được tích hợp hệ thống đăng nhập/đăng ký với:
-- **NextAuth.js** cho authentication
-- **Google OAuth** cho đăng nhập bằng Gmail
-- **Credentials Provider** cho đăng ký tài khoản thông thường
-- **Prisma + SQLite** cho database
+## 1. Cài đặt Dependencies
 
-## 🚀 Cài đặt
+Các dependencies đã được cài đặt:
+- `bcryptjs` - Mã hóa mật khẩu
+- `jsonwebtoken` - Tạo và xác thực JWT tokens
+- `@types/bcryptjs` - TypeScript types
+- `@types/jsonwebtoken` - TypeScript types
 
-### 1. Cài đặt dependencies
-```bash
-npm install next-auth @next-auth/prisma-adapter prisma @prisma/client bcryptjs @types/bcryptjs
-```
+## 2. Cấu hình Environment Variables
 
-### 2. Cấu hình Environment Variables
-Tạo file `.env.local` trong thư mục gốc:
+Tạo file `.env.local` với nội dung:
 
 ```env
-# NextAuth Configuration
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-secret-key-here
+# JWT Secret for authentication
+JWT_SECRET=your-super-secret-jwt-key-here
 
-# Google OAuth (Tùy chọn)
+# Google OAuth Configuration
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 
-# Database
-DATABASE_URL="file:./dev.db"
+# Base URL for OAuth redirects
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
 ```
 
-### 3. Khởi tạo Database
-```bash
-npx prisma generate
-npx prisma db push
-```
+## 3. Cấu hình Google OAuth
 
-### 4. Cấu hình Google OAuth (Tùy chọn)
-
-#### Bước 1: Tạo Google Cloud Project
 1. Truy cập [Google Cloud Console](https://console.cloud.google.com/)
 2. Tạo project mới hoặc chọn project hiện có
-3. Kích hoạt Google+ API
+3. Bật Google+ API
+4. Tạo OAuth 2.0 credentials
+5. Thêm authorized redirect URIs:
+   - `http://localhost:3000/api/auth/google` (development)
+   - `https://yourdomain.com/api/auth/google` (production)
+6. Copy Client ID và Client Secret vào file `.env.local`
 
-#### Bước 2: Tạo OAuth 2.0 Credentials
-1. Vào **APIs & Services** > **Credentials**
-2. Click **Create Credentials** > **OAuth 2.0 Client IDs**
-3. Chọn **Web application**
-4. Thêm **Authorized redirect URIs**:
-   - `http://localhost:3000/api/auth/callback/google`
-   - `https://yourdomain.com/api/auth/callback/google` (cho production)
+## 4. Các trang đã tạo
 
-#### Bước 3: Cập nhật Environment Variables
-```env
-GOOGLE_CLIENT_ID=your-google-client-id-from-step-2
-GOOGLE_CLIENT_SECRET=your-google-client-secret-from-step-2
-```
+### Trang đăng nhập: `/login`
+- Form đăng nhập với email/password
+- Đăng nhập bằng Google
+- Validation và error handling
+- Responsive design
 
-## 🎯 Tính năng Authentication
+### Trang đăng ký: `/register`
+- Form đăng ký với họ tên, email, password
+- Xác nhận mật khẩu
+- Đăng ký bằng Google
+- Validation đầy đủ
 
-### ✅ Đã hoàn thành
-- [x] Đăng ký tài khoản với email/password
-- [x] Đăng nhập với email/password
-- [x] Đăng nhập với Google OAuth
-- [x] Bảo vệ routes với middleware
-- [x] User menu với thông tin người dùng
-- [x] Trang chào mừng cho người dùng chưa đăng nhập
-- [x] Database schema cho User và Proxy
-- [x] Mã hóa mật khẩu với bcrypt
-- [x] Session management
+### API Endpoints
 
-### 🔧 Cấu trúc Database
-```sql
-User {
-  id: String (Primary Key)
-  name: String?
-  email: String (Unique)
-  password: String? (Hashed)
-  image: String?
-  createdAt: DateTime
-  updatedAt: DateTime
-}
+#### POST `/api/auth/register`
+- Đăng ký tài khoản mới
+- Mã hóa mật khẩu với bcrypt
+- Tạo JWT token
+- Validation đầy đủ
 
-Proxy {
-  id: Int (Primary Key)
-  host: String
-  port: Int
-  username: String?
-  password: String?
-  type: String
-  status: String
-  userId: String (Foreign Key)
-  // ... other fields
-}
-```
+#### POST `/api/auth/login`
+- Đăng nhập với email/password
+- Xác thực mật khẩu
+- Tạo JWT token
+- Error handling
 
-## 🚦 Cách sử dụng
+#### GET `/api/auth/google`
+- Xử lý Google OAuth flow
+- Lấy thông tin user từ Google
+- Tạo JWT token
+- Redirect về trang chính
 
-### 1. Chạy ứng dụng
-```bash
-npm run dev
-```
+## 5. AuthContext
 
-### 2. Truy cập ứng dụng
-- **Chưa đăng nhập**: Hiển thị trang chào mừng với nút đăng ký/đăng nhập
-- **Đã đăng nhập**: Hiển thị ứng dụng quản lý proxy đầy đủ
+Context quản lý trạng thái đăng nhập:
+- `user` - Thông tin user hiện tại
+- `token` - JWT token
+- `isLoading` - Trạng thái loading
+- `login()` - Hàm đăng nhập
+- `logout()` - Hàm đăng xuất
+- `isAuthenticated` - Kiểm tra đã đăng nhập
 
-### 3. Đăng ký tài khoản
-- Click **"Đăng ký miễn phí"** hoặc **"Đăng ký ngay"**
-- Điền thông tin: Họ tên, Email, Mật khẩu
-- Click **"Đăng ký tài khoản"**
+## 6. Header Component
 
-### 4. Đăng nhập
-- **Với email/password**: Điền email và mật khẩu
-- **Với Google**: Click **"Đăng nhập với Google"**
+Header với:
+- Logo và navigation
+- User menu khi đã đăng nhập
+- Nút đăng nhập/đăng ký khi chưa đăng nhập
+- Dropdown menu với thông tin user
+- Responsive design
 
-### 5. Quản lý tài khoản
-- Click vào avatar ở góc phải header
-- Chọn **"Hồ sơ cá nhân"** hoặc **"Cài đặt"**
-- Click **"Đăng xuất"** để thoát
+## 7. Cách sử dụng
 
-## 🔒 Bảo mật
+1. Truy cập `/login` để đăng nhập
+2. Truy cập `/register` để đăng ký
+3. Sử dụng `useAuth()` hook trong components
+4. Kiểm tra `isAuthenticated` để bảo vệ routes
 
-### ✅ Các biện pháp bảo mật đã áp dụng
-- Mã hóa mật khẩu với bcrypt (12 rounds)
-- JWT tokens cho session management
-- Middleware bảo vệ routes
-- Validation input đầy đủ
-- SQL injection protection với Prisma
-- CSRF protection với NextAuth
+## 8. Lưu ý
 
-### 🛡️ Khuyến nghị bổ sung
-- Sử dụng HTTPS trong production
-- Cấu hình rate limiting
-- Thêm 2FA (Two-Factor Authentication)
-- Logging và monitoring
-- Regular security updates
-
-## 🐛 Troubleshooting
-
-### Lỗi thường gặp
-
-#### 1. "NEXTAUTH_SECRET is not defined"
-```bash
-# Thêm vào .env.local
-NEXTAUTH_SECRET=your-secret-key-here
-```
-
-#### 2. "Google OAuth error"
-- Kiểm tra GOOGLE_CLIENT_ID và GOOGLE_CLIENT_SECRET
-- Đảm bảo redirect URI đúng
-- Kiểm tra Google Cloud Console settings
-
-#### 3. "Database connection error"
-```bash
-# Khởi tạo lại database
-npx prisma db push
-```
-
-#### 4. "Prisma client not generated"
-```bash
-npx prisma generate
-```
-
-## 📞 Hỗ trợ
-
-Nếu gặp vấn đề, vui lòng:
-1. Kiểm tra console logs
-2. Xem file `.env.local` có đúng format
-3. Chạy `npm run dev` để xem lỗi chi tiết
-4. Kiểm tra database connection
-
----
-
-**Lưu ý**: Đây là phiên bản development. Trong production, cần cấu hình thêm các biện pháp bảo mật và tối ưu hóa.
+- Hiện tại sử dụng mock database (array in-memory)
+- Trong production cần kết nối database thật
+- JWT secret phải được bảo mật
+- Google OAuth cần cấu hình đúng redirect URIs

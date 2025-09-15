@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import Header from '../components/Header'
 
 import { Download, Settings, BarChart3, Globe, Zap, Shield, RotateCcw, Activity, Database, Upload, X } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
@@ -32,6 +34,7 @@ import WebTrafficTab from '@/components/WebTrafficTab'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 export default function Home() {
   const { t } = useLanguage()
+  const { login } = useAuth()
   const [activeTab, setActiveTab] = useState('dashboard')
   
   // Use lazy loading for large datasets
@@ -63,6 +66,27 @@ export default function Home() {
   const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false)
   const [showAddProxyFormModal, setShowAddProxyFormModal] = useState(false)
   const [testUrl, setTestUrl] = useState('https://www.instagram.com/')
+
+  // Handle Google OAuth callback
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const token = urlParams.get('token')
+      const userParam = urlParams.get('user')
+      
+      if (token && userParam) {
+        try {
+          const user = JSON.parse(userParam)
+          login(user, token)
+          
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname)
+        } catch (error) {
+          console.error('Error parsing user data from Google OAuth:', error)
+        }
+      }
+    }
+  }, [login])
 
   // Advanced caching for better performance
   const proxyCache = useAdvancedCaching<Proxy[]>({
@@ -268,6 +292,7 @@ export default function Home() {
 
   return (
     <ErrorBoundary>
+      <Header />
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 relative overflow-hidden">
         {/* Background decorative elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">

@@ -7,13 +7,13 @@ import {
   Globe, 
   Shield, 
   Lock, 
-  Wifi, 
+  Wifi,
   Server, 
   Smartphone, 
   Building, 
-  Cloud, 
-  Eye, 
-  Gamepad2, 
+  Cloud,
+  Eye,
+  Gamepad2,
   Briefcase,
   Settings,
   HelpCircle
@@ -30,7 +30,7 @@ export default function ProxyTypeInfo({ selectedType, onTypeSelect }: ProxyTypeI
   const proxyCategories = [
     {
       name: 'HTTP Proxies',
-      icon: Globe,
+    icon: Globe,
       color: 'from-blue-500 to-blue-600',
       types: [
         { type: 'http', name: t('proxyTypes.http'), description: 'Standard HTTP proxy' },
@@ -41,7 +41,7 @@ export default function ProxyTypeInfo({ selectedType, onTypeSelect }: ProxyTypeI
     },
     {
       name: 'SOCKS Proxies',
-      icon: Shield,
+    icon: Shield,
       color: 'from-green-500 to-green-600',
       types: [
         { type: 'socks4', name: t('proxyTypes.socks4'), description: 'SOCKS4 protocol' },
@@ -72,7 +72,7 @@ export default function ProxyTypeInfo({ selectedType, onTypeSelect }: ProxyTypeI
     },
     {
       name: 'Specialized Proxies',
-      icon: Server,
+    icon: Server,
       color: 'from-teal-500 to-teal-600',
       types: [
         { type: 'residential', name: t('proxyTypes.residential'), description: 'Residential IP proxy' },
@@ -97,7 +97,7 @@ export default function ProxyTypeInfo({ selectedType, onTypeSelect }: ProxyTypeI
     },
     {
       name: 'Cloud & CDN',
-      icon: Cloud,
+    icon: Cloud,
       color: 'from-cyan-500 to-cyan-600',
       types: [
         { type: 'cloudflare', name: t('proxyTypes.cloudflare'), description: 'Cloudflare proxy' },
@@ -137,7 +137,7 @@ export default function ProxyTypeInfo({ selectedType, onTypeSelect }: ProxyTypeI
     },
     {
       name: 'Custom & Unknown',
-      icon: HelpCircle,
+    icon: HelpCircle,
       color: 'from-slate-500 to-slate-600',
       types: [
         { type: 'custom', name: t('proxyTypes.custom'), description: 'Custom proxy type' },
@@ -155,8 +155,8 @@ export default function ProxyTypeInfo({ selectedType, onTypeSelect }: ProxyTypeI
         <p className="text-gray-600">
           Choose from {proxyCategories.reduce((total, cat) => total + cat.types.length, 0)} different proxy types
         </p>
-      </div>
-
+          </div>
+          
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {proxyCategories.map((category, categoryIndex) => {
           const IconComponent = category.icon
@@ -165,13 +165,13 @@ export default function ProxyTypeInfo({ selectedType, onTypeSelect }: ProxyTypeI
               <div className="flex items-center mb-4">
                 <div className={`p-2 rounded-lg bg-gradient-to-r ${category.color} text-white mr-3`}>
                   <IconComponent className="h-5 w-5" />
-                </div>
+            </div>
                 <h3 className="text-lg font-semibold text-gray-900">
                   {category.name}
                 </h3>
-              </div>
-              
-              <div className="space-y-2">
+          </div>
+          
+          <div className="space-y-2">
                 {category.types.map((proxyType, typeIndex) => (
                   <button
                     key={typeIndex}
@@ -194,13 +194,13 @@ export default function ProxyTypeInfo({ selectedType, onTypeSelect }: ProxyTypeI
             </div>
           )
         })}
-      </div>
-
+            </div>
+            
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-start">
           <div className="flex-shrink-0">
             <HelpCircle className="h-5 w-5 text-blue-600" />
-          </div>
+              </div>
           <div className="ml-3">
             <h4 className="text-sm font-medium text-blue-900">
               Need Help Choosing?
